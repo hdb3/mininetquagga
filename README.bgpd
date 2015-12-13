@@ -1,0 +1,9 @@
+
+Like the ripd topology, but using bgp.
+
+Descend to sub-dir (r0/r1/r2).
+Start zebra (../zebra.sh).
+Start bgpd, giving the right AS (r0:100, r1:101, r2:102)
+../bgpd.sh 100
+
+That's it!
