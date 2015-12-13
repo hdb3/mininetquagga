@@ -1,0 +1,13 @@
+
+the bgp VM presents a router-on-a-stick.
+For maximum flexibility you can configure bith the internal IP used for the endpoint as well as the peer interface information.  Here is the compete list of configuration required:
+
+peer:
+  AS
+  link configuration (local IP, remote IP)
+
+local:
+  AS
+  internal network (specify a host with netmask)
+
+The VM will 
