@@ -1,0 +1,8 @@
+README.ripd
+
+this topology uses RIP to enable connectivity between h? hosts.
+the configuration files are all entirely generic.
+Only the state files (log/api/pid) need to be isolated.
+The scripts ripd.sh and zebra.sh should be executed in separate directories for each routing instance.
+The conf files should be located in the directory above.
+Take care to remove stale PID files!
