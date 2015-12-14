@@ -1,9 +1,18 @@
 
 Like the ripd topology, but using bgp.
+n each router context start the routing daemons:
+  Use the script 'run.sh', e.g. ./run.sh r0
+  This works as follows:
+    Descend to sub-dir (r0/r1/r2).
+    Start zebra (../zebra.sh).
+    Start bgpd, giving the right AS (r0:100, r1:101, r2:102)
+    ../bgpd.sh 100
 
-Descend to sub-dir (r0/r1/r2).
-Start zebra (../zebra.sh).
-Start bgpd, giving the right AS (r0:100, r1:101, r2:102)
-../bgpd.sh 100
-
+After a little while, pingall should work!
 That's it!
+
+Configuration and topology
+
+The topology is hard wired as a triangle between r0,r1,r2.
+The only node specific configuration is the BGP AS and BGP peers for each router node.
+These are held in bgpd.conf, which must match IP address information from the toplogy in router2.py

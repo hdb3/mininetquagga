@@ -17,7 +17,6 @@ class LinuxRouter( Node ):
 
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
-        # Enable forwarding on the router
         self.cmd( 'sysctl net.ipv4.ip_forward=1' )
 
     def terminate( self ):
@@ -29,9 +28,6 @@ class NetworkTopo( Topo ):
 
     def build( self, **_opts ):
 
-        # r0 = self.addNode( 'r0', cls=LinuxRouter )
-        # r0 = self.addNode( 'r0', cls=LinuxRouter, ip='128.0.0.1/8' )
-        # r0 = self.addNode( 'r0', cls=LinuxRouter, ip='172.16.0.1/24' )
         r0 = self.addNode( 'r0', cls=LinuxRouter, ip='10.0.1.1/24' )
         r1 = self.addNode( 'r1', cls=LinuxRouter, ip='10.1.1.1/24' )
         r2 = self.addNode( 'r2', cls=LinuxRouter, ip='10.2.1.1/24' )
