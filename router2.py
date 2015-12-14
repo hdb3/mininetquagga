@@ -11,6 +11,7 @@ from mininet.net import Mininet
 from mininet.node import Node
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
+from pprint import pprint
 
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
@@ -22,6 +23,11 @@ class LinuxRouter( Node ):
     def terminate( self ):
         self.cmd( 'sysctl net.ipv4.ip_forward=0' )
         super( LinuxRouter, self ).terminate()
+
+    def start( self ):
+        print "starting: %s" % self
+        print self.cmd( 'route' )
+        print self.cmd( './run.sh %s' % self )
 
 
 class NetworkTopo( Topo ):
@@ -50,16 +56,14 @@ class NetworkTopo( Topo ):
         self.addLink( r0, r2, intfName1='r0-r2', intfName2='r0-r2', params1={ 'ip' : '10.254.254.5/30' } , params2={ 'ip' : '10.254.254.6/30' } )
         self.addLink( r1, r2, intfName1='r1-r2', intfName2='r1-r2', params1={ 'ip' : '10.254.254.9/30' } , params2={ 'ip' : '10.254.254.10/30' } )
 
-
 def run():
     "Test linux router"
     topo = NetworkTopo()
     net = Mininet( topo=topo )
     net.start()
-    info( '*** Routing Table on Router:\n' )
-    print net[ 'r0' ].cmd( 'route' )
-    print net[ 'r1' ].cmd( 'route' )
-    print net[ 'r2' ].cmd( 'route' )
+    for r in [ 'r0', 'r1','r2' ]:
+       r_=net.get(r)
+       r_.start()
     CLI( net )
     net.stop()
 
