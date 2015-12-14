@@ -1,0 +1,4 @@
+As well as the regular mininet dependencies (OVS...), this project requires quagga.
+Download latest tarball from http://download.savannah.gnu.org/releases/quagga/. (I used quagga-0.99.24.tar.gz).
+Unpack, cd in and build (I used "autoreconf -ivf ; ./configure --disable-doc ; make ; sudo make install").
+You should also create a quagga user: "sudo adduser quagga".
