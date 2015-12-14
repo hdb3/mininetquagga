@@ -1,6 +1,6 @@
 import ipaddress  # note - this requires the py2-ipaddress module!
 from sys import exit
-# from ipaddress import IPv4Network,subnets,prefixlen
+from ipaddress import IPv4Network
 #from ipaddress import subnets
 
 class SubnetFactory( object ):
@@ -49,3 +49,8 @@ class SubnetFactory( object ):
             return smallest
         else:
             return self.splitTill(smallest,reqSize)
+
+    def getLink(self):
+        ips=self.request(30).hosts()
+        return (IPv4Network(next(ips),30),IPv4Network(next(ips),30))
+        
