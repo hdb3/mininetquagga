@@ -18,10 +18,20 @@ class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
     routers = []
-    def __init__( self, name, **params ):
+    def __init__( self, name, asn, **params ):
         super( LinuxRouter, self).__init__(name, **params )
-        LinuxRouter.routers.append(name)
+        LinuxRouter.routers[name] = self
+        # LinuxRouter.routers.append(name)
+        self.name=name
+        self.asn=asn
+        self.neighbours = []
         print "LinuxRouter init done for %s" % name
+
+    def get(name):
+        return routers[name]
+
+    def addNeighbour ( asn, local, remote ):
+        self.neighbours.append(( asn, local, remote ))
 
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
@@ -56,6 +66,8 @@ class NetworkTopo( Topo ):
                 ra = 'r'+c ; rb = 'r'+cm ; intfc = ra+'-'+rb
                 ip1,ip2 = subnetFactory.getLink()
                 self.addLink( ra, rb, intfName1=intfc, intfName2=intfc, params1={ 'ip' : str(ip1) } , params2={ 'ip' : str(ip2) } )
+                get(ra).addNeighbour(get(rb).asn,str(ip1),str(ip2))
+                get(rb).addNeighbour(get(ra).asn,str(ip2),str(ip1))
  
           
         # r0 = self.addNode( 'r0', cls=LinuxRouter, ip='10.0.1.1/24' )
