@@ -1,7 +1,6 @@
 import ipaddress  # note - this requires the py2-ipaddress module!
 from sys import exit
 from ipaddress import IPv4Network
-#from ipaddress import subnets
 
 class SubnetFactory( object ):
 
@@ -14,11 +13,9 @@ class SubnetFactory( object ):
         try:
             return (nets[0],nets[1])
         except:
-            # print list(subnet.subnets(prefixlen_diff=1))
             exit(1)
 
     def splitTill(self,subnet,reqSize):
-        # print "splitTill",reqSize,subnet.prefixlen
         if reqSize == subnet.prefixlen:
             return subnet
         else:
@@ -28,10 +25,7 @@ class SubnetFactory( object ):
 
     def request(self,reqSize):
         smallest = None
-        # print "Want ",reqSize,
         for net in self.free:
-            # print net.prefixlen,
-            # print net,net.prefixlen
             if net.prefixlen > reqSize:
                 continue
             if net.prefixlen == reqSize:
@@ -51,6 +45,10 @@ class SubnetFactory( object ):
             return self.splitTill(smallest,reqSize)
 
     def getLink(self):
-        ips=self.request(30).hosts()
-        return (IPv4Network(next(ips),30),IPv4Network(next(ips),30))
-        
+        ips = self.request(30).hosts()
+        net30 = lambda addr: str(addr)+'/30'
+        return (net30(next(ips)), net30(next(ips)))
+
+#@staticmethod
+def addrOnly(addr):
+    return str(IPv4Network(addr,strict=False).network_address)

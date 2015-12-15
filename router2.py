@@ -12,26 +12,18 @@ from mininet.node import Node
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
 import ipaddress # note - this requires the py2-ipaddress module!
-from subnetfactory import SubnetFactory
+from subnetfactory import SubnetFactory, addrOnly
+from pprint import pprint
+
+RN = 3 # number of routers in this topology
 
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
-    routers = []
-    def __init__( self, name, asn, **params ):
+    routers=[]
+    def __init__( self, name, **params ):
         super( LinuxRouter, self).__init__(name, **params )
-        LinuxRouter.routers[name] = self
-        # LinuxRouter.routers.append(name)
-        self.name=name
-        self.asn=asn
-        self.neighbours = []
-        print "LinuxRouter init done for %s" % name
-
-    def get(name):
-        return routers[name]
-
-    def addNeighbour ( asn, local, remote ):
-        self.neighbours.append(( asn, local, remote ))
+        LinuxRouter.routers.append(name)
 
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
@@ -46,29 +38,38 @@ class LinuxRouter( Node ):
         print self.cmd( 'route' )
         print self.cmd( './run.sh %s' % self )
 
-
 class NetworkTopo( Topo ):
 
     def build( self, **_opts ):
 
         subnetFactory = SubnetFactory('10.0.0.0/8')
 
-        for n in range(3):
+        for n in range(RN):
             ip1,ip2 = subnetFactory.getLink()
+            print "host network: ",(ip1,ip2)
+            asn = 100+n
             c = chr(ord('0')+n)
-            r = self.addNode( 'r'+c, cls=LinuxRouter, ip=str(ip1), asn=100+n )
+            r = self.addNode( 'r'+c, cls=LinuxRouter, ip=ip1, asn=asn )
             s = self.addSwitch( 's' + c)
-            self.addLink( s, r, intfName2='r%s-eth1'%c, params2={ 'ip' : str(ip1) } )
-            h = self.addHost( 'h'+c, ip=str(ip2.network_address), defaultRoute='via '+str(ip1.network_address))
+            self.addLink( s, r, intfName2='r%s-eth1'%c, params2={ 'ip' : ip1 } )
+            h = self.addHost( 'h'+c, ip=ip2, defaultRoute='via '+addrOnly(ip1))
             self.addLink( h, s )
-            for m in range(n+1,n-1):
+
+        for n in range(RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
+            for m in range(n+1,RN):
+                asn = 100+n
+                remoteAsn = 100+m
                 cm = chr(ord('0')+m)
-                ra = 'r'+c ; rb = 'r'+cm ; intfc = ra+'-'+rb
+                cn = chr(ord('0')+n)
+                ra = 'r'+cn ; rb = 'r'+cm ; intfca = ra+'-'+rb ; intfcb = rb+'-'+ra
+                # local = LinuxRouter.get(ra)
+                # remote = LinuxRouter.get(rb)
                 ip1,ip2 = subnetFactory.getLink()
-                self.addLink( ra, rb, intfName1=intfc, intfName2=intfc, params1={ 'ip' : str(ip1) } , params2={ 'ip' : str(ip2) } )
-                get(ra).addNeighbour(get(rb).asn,str(ip1),str(ip2))
-                get(rb).addNeighbour(get(ra).asn,str(ip2),str(ip1))
- 
+                print "adding peer", ra, rb, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
+                # self.addLink( ra, rb, intfName1=intfc, intfName2=intfc, params1={ 'ip' : ip1 } , params2={ 'ip' : ip2 } )
+                self.addLink( ra, rb, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
+                # local.addNeighbour(remote.asn,ip2)
+                # remote.addNeighbour(local.asn,ip1)
           
         # r0 = self.addNode( 'r0', cls=LinuxRouter, ip='10.0.1.1/24' )
         # r1 = self.addNode( 'r1', cls=LinuxRouter, ip='10.1.1.1/24' )
@@ -99,6 +100,13 @@ def run():
     net.start()
     for r in LinuxRouter.routers:
        net.get(r).start()
+       print net.get(r).intfList()
+       for intf in net.get(r).intfList():
+           remote = intf.link.intf2 if intf == intf.link.intf1 else intf.link.intf1
+           if 'asn' in intf.params:
+               # print "*****",intf.params,
+               # print "*****",remote.params
+               print "BGP peer for %s is AS:%d at %s" % (r,remote.params['asn'],remote.params['ip'])
     CLI( net )
     net.stop()
 
