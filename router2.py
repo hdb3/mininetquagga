@@ -14,17 +14,32 @@ from mininet.cli import CLI
 import ipaddress # note - this requires the py2-ipaddress module!
 from subnetfactory import SubnetFactory, addrOnly
 from pprint import pprint
+from os import symlink, mkdir, getcwd, chmod, chown, chown
+from tempfile import mkdtemp
+from shutil import rmtree
+from pwd import getpwnam
 
 RN = 3 # number of routers in this topology
-CONFFILE = 'bgpd.conf'
+BGPD='/usr/local/sbin/bgpd'
+ZEBRA='/usr/local/sbin/zebra'
+BGPCONFFILE = 'bgpd.conf'
+ZEBRACONFFILE = 'zebra.conf'
+TEMPDIR=mkdtemp(dir='/tmp')
+#chmod(TEMPDIR,0777)
+symlink(getcwd() + '/'+ ZEBRACONFFILE,TEMPDIR + '/'+ ZEBRACONFFILE)
+USER=getpwnam('quagga')[2]
+GROUP=getpwnam('quagga')[3]
+#chownQuagga=lambda p : chown(p,USER,GROUP)
+#chownQuagga(TEMPDIR)
+chown(TEMPDIR,USER,GROUP)
 
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
-    routers=[]
+    _routers=[]
     def __init__( self, name, asn, **params ):
         super( LinuxRouter, self).__init__(name, **params )
-        LinuxRouter.routers.append((name,asn))
+        LinuxRouter._routers.append((name,asn))
 
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
@@ -34,10 +49,12 @@ class LinuxRouter( Node ):
         self.cmd( 'sysctl net.ipv4.ip_forward=0' )
         super( LinuxRouter, self ).terminate()
 
-    def start( self ):
-        print "starting: %s" % self
-        print self.cmd( 'route' )
-        print self.cmd( './run.sh %s' % self )
+    def start( self, path ):
+        subdir = path + '/' + self.name
+        print "starting zebra for %s in %s" % (self,subdir)
+        self.cmd( 'cd ' + subdir + ' && ' + ZEBRA + ' -f ../zebra.conf -i %s/zebra.pid -z %s/zebra.api -d' % (subdir,subdir) )
+        print "starting bgpd for %s in %s" % (self,subdir)
+        self.cmd( 'cd ' + subdir + ' && ' + BGPD + ' -f %s/bgpd.conf -i %s/bgpd.pid -z %s/zebra.api -d' % (subdir,subdir,subdir) )
 
 class NetworkTopo( Topo ):
 
@@ -63,76 +80,57 @@ class NetworkTopo( Topo ):
                 cm = chr(ord('0')+m)
                 cn = chr(ord('0')+n)
                 ra = 'r'+cn ; rb = 'r'+cm ; intfca = ra+'-'+rb ; intfcb = rb+'-'+ra
-                # local = LinuxRouter.get(ra)
-                # remote = LinuxRouter.get(rb)
                 ip1,ip2 = subnetFactory.getLink()
                 print "adding peer", ra, rb, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
-                # self.addLink( ra, rb, intfName1=intfc, intfName2=intfc, params1={ 'ip' : ip1 } , params2={ 'ip' : ip2 } )
                 self.addLink( ra, rb, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
-                # local.addNeighbour(remote.asn,ip2)
-                # remote.addNeighbour(local.asn,ip1)
           
-        # r0 = self.addNode( 'r0', cls=LinuxRouter, ip='10.0.1.1/24' )
-        # r1 = self.addNode( 'r1', cls=LinuxRouter, ip='10.1.1.1/24' )
-        # r2 = self.addNode( 'r2', cls=LinuxRouter, ip='10.2.1.1/24' )
-
-
-        # s0, s1, s2 = [ self.addSwitch( s ) for s in 's0', 's1', 's2' ]
-
-        # self.addLink( s0, r0, intfName2='r0-eth1', params2={ 'ip' : '10.0.1.1/24' } )
-        # self.addLink( s1, r1, intfName2='r1-eth1', params2={ 'ip' : '10.1.1.1/24' } )
-        # self.addLink( s2, r2, intfName2='r2-eth1', params2={ 'ip' : '10.2.1.1/24' } )
-
-        # h0 = self.addHost( 'h0', ip='10.0.1.2/24', defaultRoute='via 10.0.1.1' )
-        # h1 = self.addHost( 'h1', ip='10.1.1.2/24', defaultRoute='via 10.1.1.1' )
-        # h2 = self.addHost( 'h2', ip='10.2.1.2/24', defaultRoute='via 10.2.1.1' )
-
-        # for h, s in [ (h0, s0), (h1, s1), (h2, s2) ]:
-            # self.addLink( h, s )
-
-        # self.addLink( r0, r1, intfName1='r0-r1', intfName2='r0-r1', params1={ 'ip' : '10.254.254.1/30' } , params2={ 'ip' : '10.254.254.2/30' } )
-        # self.addLink( r0, r2, intfName1='r0-r2', intfName2='r0-r2', params1={ 'ip' : '10.254.254.5/30' } , params2={ 'ip' : '10.254.254.6/30' } )
-        # self.addLink( r1, r2, intfName1='r1-r2', intfName2='r1-r2', params1={ 'ip' : '10.254.254.9/30' } , params2={ 'ip' : '10.254.254.10/30' } )
-
-def printConfig(config):
-    f = open(CONFFILE, 'w')
-    f.write( "hostname bgpd\n" )
+def writeBGPconfig(config,router,path):
+    f = open(path, 'w')
+    f.write( "hostname %s\n" % router )
     f.write( "password bgpd\n" )
     f.write( "enable password bgpd\n" )
     f.write( "log file bgpd.log\n" )
-    for router in config:
-        asn = config[router]['asn']
-        f.write( "! view from AS %d %s\n" % (asn,router) )
-        f.write( "!-%d-router bgp %d\n" % (asn,asn) )
-        for peer in config[router]['peers']:
-            remoteIP = peer['ip']
-            remoteASN = peer['asn']
-            f.write( "!-%d-neighbor %s remote-as %d\n" % (asn,remoteIP,remoteASN) )
+    asn = config[router]['asn']
+    f.write( "router bgp %d\n" % asn )
+    for peer in config[router]['peers']:
+        remoteIP = peer['ip']
+        remoteASN = peer['asn']
+        f.write( "  neighbor %s remote-as %d\n" % (remoteIP,remoteASN) )
 
     f.write( "redistribute static\n" )
     f.write( "redistribute connected\n" )
+    f.close()
+    #chownQuagga(path)
+    chown(path,USER,GROUP)
 
-def run():
-    "Test linux router"
-    topo = NetworkTopo()
-    net = Mininet( topo=topo )
-    net.start()
+def buildBGPconfig(net):
     configBGP = {}
-    for r,asn in LinuxRouter.routers:
-       # print "router BGP %s %d" % (r,asn)
+    for r,asn in LinuxRouter._routers:
        configBGP[r]={}
        configBGP[r]['asn']=asn
        configBGP[r]['peers']=[]
        for intf in net.get(r).intfList():
            remote = intf.link.intf2 if intf == intf.link.intf1 else intf.link.intf1
            if 'asn' in intf.params:
-               # print "BGP peer for %s is AS:%d at %s" % (r,remote.params['asn'],remote.params['ip'])
                configBGP[r]['peers'].append({ 'ip' : addrOnly(remote.params['ip']), 'asn' : remote.params['asn']})
-    printConfig(configBGP)
-    for r,asn in LinuxRouter.routers:
-       net.get(r).start()
+    return configBGP
+
+def run():
+    "Test linux router"
+    topo = NetworkTopo()
+    net = Mininet( topo=topo )
+    net.start()
+    config=buildBGPconfig(net)
+    for r,asn in LinuxRouter._routers:
+       dirpath = TEMPDIR + '/' + r
+       dir = mkdir(dirpath,0777)
+       # chownQuagga(dir)
+       chown(dirpath,USER,GROUP)
+       writeBGPconfig(config,r,dirpath+'/'+BGPCONFFILE)
+       net.get(r).start(TEMPDIR)
     CLI( net )
     net.stop()
+    # rmtree(TEMPDIR)
 
 if __name__ == '__main__':
     setLogLevel( 'info' )

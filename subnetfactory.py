@@ -52,5 +52,4 @@ class SubnetFactory( object ):
 
 #@staticmethod
 def addrOnly(addr):
-    #return str(IPv4Network(addr,strict=False).network_address)
     return addr[:index(addr,'/')]
