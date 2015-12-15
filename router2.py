@@ -21,9 +21,9 @@ class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
     routers=[]
-    def __init__( self, name, **params ):
+    def __init__( self, name, asn, **params ):
         super( LinuxRouter, self).__init__(name, **params )
-        LinuxRouter.routers.append(name)
+        LinuxRouter.routers.append((name,asn))
 
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
@@ -93,20 +93,42 @@ class NetworkTopo( Topo ):
         # self.addLink( r0, r2, intfName1='r0-r2', intfName2='r0-r2', params1={ 'ip' : '10.254.254.5/30' } , params2={ 'ip' : '10.254.254.6/30' } )
         # self.addLink( r1, r2, intfName1='r1-r2', intfName2='r1-r2', params1={ 'ip' : '10.254.254.9/30' } , params2={ 'ip' : '10.254.254.10/30' } )
 
+def printConfig(config):
+    print "hostname bgpd"
+    print "password bgpd"
+    print "enable password bgpd"
+    print "log file bgpd.log"
+    for router in config:
+        asn = config[router]['asn']
+        print "! view from AS %d %s" % (asn,router)
+        print "!-%d-router bgp %d" % (asn,asn)
+        for peer in config[router]['peers']:
+            remoteIP = peer['ip']
+            remoteASN = peer['asn']
+            print "!-%d-neighbor %s remote-as %d" % (asn,remoteIP,remoteASN)
+
+    print "redistribute static"
+    print "redistribute connected"
+
 def run():
     "Test linux router"
     topo = NetworkTopo()
     net = Mininet( topo=topo )
     net.start()
-    for r in LinuxRouter.routers:
-       net.get(r).start()
-       print net.get(r).intfList()
+    configBGP = {}
+    for r,asn in LinuxRouter.routers:
+       # print "router BGP %s %d" % (r,asn)
+       configBGP[r]={}
+       configBGP[r]['asn']=asn
+       configBGP[r]['peers']=[]
        for intf in net.get(r).intfList():
            remote = intf.link.intf2 if intf == intf.link.intf1 else intf.link.intf1
            if 'asn' in intf.params:
-               # print "*****",intf.params,
-               # print "*****",remote.params
-               print "BGP peer for %s is AS:%d at %s" % (r,remote.params['asn'],remote.params['ip'])
+               # print "BGP peer for %s is AS:%d at %s" % (r,remote.params['asn'],remote.params['ip'])
+               configBGP[r]['peers'].append({ 'ip' : addrOnly(remote.params['ip']), 'asn' : remote.params['asn']})
+    printConfig(configBGP)
+    for r,asn in LinuxRouter.routers:
+       net.get(r).start()
     CLI( net )
     net.stop()
 

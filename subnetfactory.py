@@ -1,6 +1,7 @@
 import ipaddress  # note - this requires the py2-ipaddress module!
 from sys import exit
 from ipaddress import IPv4Network
+from string import index
 
 class SubnetFactory( object ):
 
@@ -51,4 +52,5 @@ class SubnetFactory( object ):
 
 #@staticmethod
 def addrOnly(addr):
-    return str(IPv4Network(addr,strict=False).network_address)
+    #return str(IPv4Network(addr,strict=False).network_address)
+    return addr[:index(addr,'/')]
