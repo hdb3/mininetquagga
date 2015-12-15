@@ -19,7 +19,7 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from pwd import getpwnam
 
-RN = 3 # number of routers in this topology
+RN = 10 # number of routers in this topology
 BGPD='/usr/local/sbin/bgpd'
 ZEBRA='/usr/local/sbin/zebra'
 BGPCONFFILE = 'bgpd.conf'
