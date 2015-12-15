@@ -16,6 +16,7 @@ from subnetfactory import SubnetFactory, addrOnly
 from pprint import pprint
 
 RN = 3 # number of routers in this topology
+CONFFILE = 'bgpd.conf'
 
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
@@ -94,21 +95,22 @@ class NetworkTopo( Topo ):
         # self.addLink( r1, r2, intfName1='r1-r2', intfName2='r1-r2', params1={ 'ip' : '10.254.254.9/30' } , params2={ 'ip' : '10.254.254.10/30' } )
 
 def printConfig(config):
-    print "hostname bgpd"
-    print "password bgpd"
-    print "enable password bgpd"
-    print "log file bgpd.log"
+    f = open(CONFFILE, 'w')
+    f.write( "hostname bgpd\n" )
+    f.write( "password bgpd\n" )
+    f.write( "enable password bgpd\n" )
+    f.write( "log file bgpd.log\n" )
     for router in config:
         asn = config[router]['asn']
-        print "! view from AS %d %s" % (asn,router)
-        print "!-%d-router bgp %d" % (asn,asn)
+        f.write( "! view from AS %d %s\n" % (asn,router) )
+        f.write( "!-%d-router bgp %d\n" % (asn,asn) )
         for peer in config[router]['peers']:
             remoteIP = peer['ip']
             remoteASN = peer['asn']
-            print "!-%d-neighbor %s remote-as %d" % (asn,remoteIP,remoteASN)
+            f.write( "!-%d-neighbor %s remote-as %d\n" % (asn,remoteIP,remoteASN) )
 
-    print "redistribute static"
-    print "redistribute connected"
+    f.write( "redistribute static\n" )
+    f.write( "redistribute connected\n" )
 
 def run():
     "Test linux router"
