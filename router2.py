@@ -17,6 +17,12 @@ from subnetfactory import SubnetFactory
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
+    routers = []
+    def __init__( self, name, **params ):
+        super( LinuxRouter, self).__init__(name, **params )
+        LinuxRouter.routers.append(name)
+        print "LinuxRouter init done for %s" % name
+
     def config( self, **params ):
         super( LinuxRouter, self).config( **params )
         self.cmd( 'sysctl net.ipv4.ip_forward=1' )
@@ -40,7 +46,7 @@ class NetworkTopo( Topo ):
         for n in range(3):
             ip1,ip2 = subnetFactory.getLink()
             c = chr(ord('0')+n)
-            r = self.addNode( 'r'+c, cls=LinuxRouter, ip=str(ip1) )
+            r = self.addNode( 'r'+c, cls=LinuxRouter, ip=str(ip1), asn=100+n )
             s = self.addSwitch( 's' + c)
             self.addLink( s, r, intfName2='r%s-eth1'%c, params2={ 'ip' : str(ip1) } )
             h = self.addHost( 'h'+c, ip=str(ip2.network_address), defaultRoute='via '+str(ip1.network_address))
@@ -79,9 +85,8 @@ def run():
     topo = NetworkTopo()
     net = Mininet( topo=topo )
     net.start()
-    for r in [ 'r0', 'r1','r2' ]:
-       r_=net.get(r)
-       r_.start()
+    for r in LinuxRouter.routers:
+       net.get(r).start()
     CLI( net )
     net.stop()
 

@@ -10,4 +10,4 @@ local:
   AS
   internal network (specify a host with netmask)
 
-The VM will 
+As an openstack VM the VM will run BGP over eth1 using the provided data in json format
