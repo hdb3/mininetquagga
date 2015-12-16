@@ -19,6 +19,8 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from pwd import getpwnam
 import sys
+from linuxrouter import LinuxRouter
+from topo1 import NetworkTopo
 
 try:
     RN = int(sys.argv[1])
@@ -26,8 +28,8 @@ try:
 except:
     RN = 3 # default number of routers for this topology
 print "will build %d node topo" % RN
-BGPD='/usr/local/sbin/bgpd'
-ZEBRA='/usr/local/sbin/zebra'
+# BGPD='/usr/local/sbin/bgpd'
+# ZEBRA='/usr/local/sbin/zebra'
 BGPCONFFILE = 'bgpd.conf'
 ZEBRACONFFILE = 'zebra.conf'
 TEMPDIR=mkdtemp(dir='/tmp')
@@ -35,99 +37,13 @@ USER=getpwnam('quagga')[2]
 GROUP=getpwnam('quagga')[3]
 chown(TEMPDIR,USER,GROUP)
 
-class LinuxRouter( Node ):
-    "A Node with IP forwarding enabled."
-
-    _routers=[]
-    def __init__( self, name, asn, **params ):
-        super( LinuxRouter, self).__init__(name, **params )
-        LinuxRouter._routers.append((name,asn))
-
-    def config( self, **params ):
-        super( LinuxRouter, self).config( **params )
-        self.cmd( 'sysctl net.ipv4.ip_forward=1' )
-
-    def terminate( self ):
-        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
-        super( LinuxRouter, self ).terminate()
-
-    def start( self, path ):
-        subdir = path + '/' + self.name
-        symlink(getcwd() + '/'+ ZEBRACONFFILE, subdir + '/'+ ZEBRACONFFILE)
-        self.cmd('/bin/mount --bind ' + subdir + ' /var/run')
-        self.cmd( 'cd /var/run && zebra -f zebra.conf -d' )
-        self.cmd( 'cd /var/run && bgpd -f bgpd.conf -d' )
-
-class NetworkTopo( Topo ):
-
-    def build( self, **_opts ):
-
-        subnetFactory = SubnetFactory('10.0.0.0/8')
-
-        for n in range(RN):
-            ip1,ip2 = subnetFactory.getLink()
-            print "host network: ",(ip1,ip2)
-            asn = 100+n
-            c = str(n)
-            r = self.addNode( 'r'+c, cls=LinuxRouter, ip=ip1, asn=asn )
-            s = self.addSwitch( 's' + c)
-            self.addLink( s, r, intfName2='r%s-eth1'%c, params2={ 'ip' : ip1 } )
-            h = self.addHost( 'h'+c, ip=ip2, defaultRoute='via '+addrOnly(ip1))
-            self.addLink( h, s )
-
-        for n in range(RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
-            for m in range(n+1,RN):
-                asn = 100+n
-                remoteAsn = 100+m
-                cm = str(m)
-                cn = str(n)
-                ra = 'r'+cn ; rb = 'r'+cm ; intfca = ra+'-'+rb ; intfcb = rb+'-'+ra
-                ip1,ip2 = subnetFactory.getLink()
-                print "adding peer", ra, rb, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
-                self.addLink( ra, rb, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
-          
-def writeBGPconfig(config,router,path):
-    f = open(path, 'w')
-    f.write( "hostname %s\n" % router )
-    f.write( "password bgpd\n" )
-    f.write( "enable password bgpd\n" )
-    f.write( "log file bgpd.log\n" )
-    asn = config[router]['asn']
-    f.write( "router bgp %d\n" % asn )
-    for peer in config[router]['peers']:
-        remoteIP = peer['ip']
-        remoteASN = peer['asn']
-        f.write( "  neighbor %s remote-as %d\n" % (remoteIP,remoteASN) )
-
-    f.write( "redistribute static\n" )
-    f.write( "redistribute connected\n" )
-    f.close()
-    chown(path,USER,GROUP)
-
-def buildBGPconfig(net):
-    configBGP = {}
-    for r,asn in LinuxRouter._routers:
-       configBGP[r]={}
-       configBGP[r]['asn']=asn
-       configBGP[r]['peers']=[]
-       for intf in net.get(r).intfList():
-           remote = intf.link.intf2 if intf == intf.link.intf1 else intf.link.intf1
-           if 'asn' in intf.params:
-               configBGP[r]['peers'].append({ 'ip' : addrOnly(remote.params['ip']), 'asn' : remote.params['asn']})
-    return configBGP
-
 def run():
     "Test linux router"
-    topo = NetworkTopo()
+    topo = NetworkTopo(RN)
     net = Mininet( topo=topo )
     net.start()
-    config=buildBGPconfig(net)
-    for r,asn in LinuxRouter._routers:
-       dirpath = TEMPDIR + '/' + r
-       dir = mkdir(dirpath,0777)
-       chown(dirpath,USER,GROUP)
-       writeBGPconfig(config,r,dirpath+'/'+BGPCONFFILE)
-       net.get(r).start(TEMPDIR)
+    for r in LinuxRouter._routers:
+       net.get(r).start()
     CLI( net )
     net.stop()
     rmtree(TEMPDIR)
