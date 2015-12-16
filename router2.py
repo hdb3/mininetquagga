@@ -18,8 +18,15 @@ from os import symlink, mkdir, getcwd, chmod, chown, chown
 from tempfile import mkdtemp
 from shutil import rmtree
 from pwd import getpwnam
+import sys
 
-RN = 10 # number of routers in this topology
+try:
+    RN = int(sys.argv[1])
+    assert RN > 0 and RN < 11
+except:
+    RN = 3 # default number of routers for this topology
+# print len(sys.argv), "'%s'" % sys.argv[1]
+print "will build %d node topo" % RN
 BGPD='/usr/local/sbin/bgpd'
 ZEBRA='/usr/local/sbin/zebra'
 BGPCONFFILE = 'bgpd.conf'
