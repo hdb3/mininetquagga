@@ -25,19 +25,14 @@ try:
     assert RN > 0 and RN < 11
 except:
     RN = 3 # default number of routers for this topology
-# print len(sys.argv), "'%s'" % sys.argv[1]
 print "will build %d node topo" % RN
 BGPD='/usr/local/sbin/bgpd'
 ZEBRA='/usr/local/sbin/zebra'
 BGPCONFFILE = 'bgpd.conf'
 ZEBRACONFFILE = 'zebra.conf'
 TEMPDIR=mkdtemp(dir='/tmp')
-#chmod(TEMPDIR,0777)
-symlink(getcwd() + '/'+ ZEBRACONFFILE,TEMPDIR + '/'+ ZEBRACONFFILE)
 USER=getpwnam('quagga')[2]
 GROUP=getpwnam('quagga')[3]
-#chownQuagga=lambda p : chown(p,USER,GROUP)
-#chownQuagga(TEMPDIR)
 chown(TEMPDIR,USER,GROUP)
 
 class LinuxRouter( Node ):
@@ -58,10 +53,12 @@ class LinuxRouter( Node ):
 
     def start( self, path ):
         subdir = path + '/' + self.name
+        symlink(getcwd() + '/'+ ZEBRACONFFILE, subdir + '/'+ ZEBRACONFFILE)
+        self.cmd('/bin/mount --bind ' + subdir + ' /var/run')
         print "starting zebra for %s in %s" % (self,subdir)
-        self.cmd( 'cd ' + subdir + ' && ' + ZEBRA + ' -f ../zebra.conf -i %s/zebra.pid -z %s/zebra.api -d' % (subdir,subdir) )
+        self.cmd( 'cd /var/run && zebra -f zebra.conf -d' )
         print "starting bgpd for %s in %s" % (self,subdir)
-        self.cmd( 'cd ' + subdir + ' && ' + BGPD + ' -f %s/bgpd.conf -i %s/bgpd.pid -z %s/zebra.api -d' % (subdir,subdir,subdir) )
+        self.cmd( 'cd /var/run && bgpd -f bgpd.conf -d' )
 
 class NetworkTopo( Topo ):
 
@@ -107,7 +104,6 @@ def writeBGPconfig(config,router,path):
     f.write( "redistribute static\n" )
     f.write( "redistribute connected\n" )
     f.close()
-    #chownQuagga(path)
     chown(path,USER,GROUP)
 
 def buildBGPconfig(net):
@@ -131,13 +127,12 @@ def run():
     for r,asn in LinuxRouter._routers:
        dirpath = TEMPDIR + '/' + r
        dir = mkdir(dirpath,0777)
-       # chownQuagga(dir)
        chown(dirpath,USER,GROUP)
        writeBGPconfig(config,r,dirpath+'/'+BGPCONFFILE)
        net.get(r).start(TEMPDIR)
     CLI( net )
     net.stop()
-    # rmtree(TEMPDIR)
+    rmtree(TEMPDIR)
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
