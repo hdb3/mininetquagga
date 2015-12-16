@@ -22,7 +22,7 @@ import sys
 
 try:
     RN = int(sys.argv[1])
-    assert RN > 0 and RN < 11
+    assert RN > 0 and RN < 100
 except:
     RN = 3 # default number of routers for this topology
 print "will build %d node topo" % RN
@@ -55,9 +55,7 @@ class LinuxRouter( Node ):
         subdir = path + '/' + self.name
         symlink(getcwd() + '/'+ ZEBRACONFFILE, subdir + '/'+ ZEBRACONFFILE)
         self.cmd('/bin/mount --bind ' + subdir + ' /var/run')
-        print "starting zebra for %s in %s" % (self,subdir)
         self.cmd( 'cd /var/run && zebra -f zebra.conf -d' )
-        print "starting bgpd for %s in %s" % (self,subdir)
         self.cmd( 'cd /var/run && bgpd -f bgpd.conf -d' )
 
 class NetworkTopo( Topo ):
@@ -70,7 +68,7 @@ class NetworkTopo( Topo ):
             ip1,ip2 = subnetFactory.getLink()
             print "host network: ",(ip1,ip2)
             asn = 100+n
-            c = chr(ord('0')+n)
+            c = str(n)
             r = self.addNode( 'r'+c, cls=LinuxRouter, ip=ip1, asn=asn )
             s = self.addSwitch( 's' + c)
             self.addLink( s, r, intfName2='r%s-eth1'%c, params2={ 'ip' : ip1 } )
@@ -81,8 +79,8 @@ class NetworkTopo( Topo ):
             for m in range(n+1,RN):
                 asn = 100+n
                 remoteAsn = 100+m
-                cm = chr(ord('0')+m)
-                cn = chr(ord('0')+n)
+                cm = str(m)
+                cn = str(n)
                 ra = 'r'+cn ; rb = 'r'+cm ; intfca = ra+'-'+rb ; intfcb = rb+'-'+ra
                 ip1,ip2 = subnetFactory.getLink()
                 print "adding peer", ra, rb, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
