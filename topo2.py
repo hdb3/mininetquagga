@@ -30,13 +30,9 @@ class NetworkTopo( Topo ):
             h = self.addHost( 'h'+c, ip=ip2, defaultRoute='via '+addrOnly(ip1))
             self.addLink( h, r, intfName2='r%s-eth1'%c, params2={ 'ip' : ip1 } )
 
-        for n in range(n+1,self.RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
-            for m in range(n+1,self.RN):
-                asn = 100+n
-                remoteAsn = 100+m
-                cm = str(m)
-                cn = str(n)
-                ra = 'r'+cn ; rb = 'r'+cm ; intfca = ra+'-'+rb ; intfcb = rb+'-'+ra
-                ip1,ip2 = subnetFactory.getLink()
-                print "adding peer", ra, rb, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
-                self.addLink( ra, rb, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
+        for n in range(1,self.RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
+            cn = str(n) ; r0 = 'r0' ; ra = 'r'+cn ; intfca = r0+'-'+ra ; intfcb = ra+'-'+r0
+            asn = 100 ; remoteAsn = 100+n
+            ip1,ip2 = subnetFactory.getLink()
+            print "adding peer", r0, ra, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
+            self.addLink( r0, ra, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )

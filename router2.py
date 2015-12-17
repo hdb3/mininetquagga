@@ -20,7 +20,7 @@ from shutil import rmtree
 from pwd import getpwnam
 import sys
 from linuxrouter import LinuxRouter
-from topo1 import NetworkTopo
+from topo2 import NetworkTopo
 
 try:
     RN = int(sys.argv[1])
