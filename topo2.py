@@ -27,12 +27,10 @@ class NetworkTopo( Topo ):
             asn = 100+n
             c = str(n)
             r = self.addNode( 'r'+c, cls=LinuxRouter, ip=ip1, asn=asn )
-            # s = self.addSwitch( 's' + c)
             h = self.addHost( 'h'+c, ip=ip2, defaultRoute='via '+addrOnly(ip1))
             self.addLink( h, r, intfName2='r%s-eth1'%c, params2={ 'ip' : ip1 } )
-            # self.addLink( h, s )
 
-        for n in range(self.RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
+        for n in range(n+1,self.RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
             for m in range(n+1,self.RN):
                 asn = 100+n
                 remoteAsn = 100+m

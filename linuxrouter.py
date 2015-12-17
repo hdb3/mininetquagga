@@ -22,6 +22,7 @@ class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
 
     _routers=[]
+
     def __init__( self, name, asn, **params ):
         super( LinuxRouter, self).__init__(name, **params )
         LinuxRouter._routers.append(name)
@@ -68,4 +69,5 @@ class LinuxRouter( Node ):
 
     def stop( self ):
         self.cmd( 'cd /var/run && kill $(<bgpd.pid) $(<zebra.pid) ' )
-        self.cmd('/bin/umount ' + self.path + ' /var/run')
+        # self.cmd('/bin/umount ' + self.path)
+        self.cmd('/bin/umount /var/run')
