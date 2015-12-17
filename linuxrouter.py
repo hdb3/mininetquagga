@@ -8,6 +8,7 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from pwd import getpwnam
 import sys
+from string import index
 
 BGPCONFFILE = 'bgpd.conf'
 ZEBRACONFFILE = 'zebra.conf'
@@ -15,6 +16,7 @@ TEMPDIR=mkdtemp(dir='/tmp')
 USER=getpwnam('quagga')[2]
 GROUP=getpwnam('quagga')[3]
 chown(TEMPDIR,USER,GROUP)
+
 
 class LinuxRouter( Node ):
     "A Node with IP forwarding enabled."
@@ -37,12 +39,16 @@ class LinuxRouter( Node ):
         f.write( "hostname %s\n" % self.name )
         f.write( "password bgpd\n" )
         f.write( "enable password bgpd\n" )
-        f.write( "log file bgpd.log\n" )
+        f.write( "log file bgpd.log debugging\n" )
+        # f.write( "debugging bgp\n" )
         f.write( "router bgp %d\n" % self.asn )
+        addrOnly = lambda addr : addr[:index(addr,'/')]
         for intf in self.intfList():
            remote = intf.link.intf2 if intf == intf.link.intf1 else intf.link.intf1
            if 'asn' in intf.params:
-               f.write( "  neighbor %s remote-as %d\n" % (remote.params['ip'],remote.params['asn']) )
+               remoteASN = remote.params['asn']
+               remoteIP = addrOnly(remote.params['ip'])
+               f.write( "  neighbor %s remote-as %d\n" % (remoteIP,remoteASN) )
         f.write( "redistribute static\n" )
         f.write( "redistribute connected\n" )
         f.close()
@@ -54,7 +60,7 @@ class LinuxRouter( Node ):
     def terminate( self ):
         self.cmd( 'sysctl net.ipv4.ip_forward=0' )
         super( LinuxRouter, self ).terminate()
-        # we could always delete the tmp directory now... (self.path)
+        # we could always delete the tmp directory now... (self.path) ????
 
     def start( self ):
         self.cmd( 'cd /var/run && zebra -f zebra.conf -d' )
@@ -62,3 +68,4 @@ class LinuxRouter( Node ):
 
     def stop( self ):
         self.cmd( 'cd /var/run && kill $(<bgpd.pid) $(<zebra.pid) ' )
+        self.cmd('/bin/umount ' + self.path + ' /var/run')
