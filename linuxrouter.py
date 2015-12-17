@@ -59,3 +59,6 @@ class LinuxRouter( Node ):
     def start( self ):
         self.cmd( 'cd /var/run && zebra -f zebra.conf -d' )
         self.cmd( 'cd /var/run && bgpd -f bgpd.conf -d' )
+
+    def stop( self ):
+        self.cmd( 'cd /var/run && kill $(<bgpd.pid) $(<zebra.pid) ' )

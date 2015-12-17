@@ -45,6 +45,8 @@ def run():
     for r in LinuxRouter._routers:
        net.get(r).start()
     CLI( net )
+    for r in LinuxRouter._routers:
+       net.get(r).stop()
     net.stop()
     rmtree(TEMPDIR)
 
