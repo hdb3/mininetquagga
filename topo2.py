@@ -36,3 +36,7 @@ class NetworkTopo( Topo ):
             ip1,ip2 = subnetFactory.getLink()
             print "adding peer", r0, ra, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
             self.addLink( r0, ra, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
+
+def network(RN):
+    topo = NetworkTopo(RN)
+    return Mininet( topo=topo , controller = None )

@@ -20,14 +20,17 @@ from shutil import rmtree
 from pwd import getpwnam
 import sys
 from linuxrouter import LinuxRouter
+from importlib import import_module
 
 try:
-    topoPath = sys.argv[2]
-    from topoPath import NetworkTopo
+    __module = import_module(sys.argv[2])
+    print "successfuly imported a topology from " + sys.argv[2]
 except:
     if len(sys.argv)>2:
         print "tried and failed to import a topology from " + sys.argv[2]
-    from topo1 import NetworkTopo
+    __module = import_module('topo1')
+
+network = __module.network
 
 try:
     RN = int(sys.argv[1])
@@ -35,19 +38,10 @@ try:
 except:
     RN = 3 # default number of routers for this topology
 print "will build %d node topo" % RN
-# BGPD='/usr/local/sbin/bgpd'
-# ZEBRA='/usr/local/sbin/zebra'
-BGPCONFFILE = 'bgpd.conf'
-ZEBRACONFFILE = 'zebra.conf'
-TEMPDIR=mkdtemp(dir='/tmp')
-USER=getpwnam('quagga')[2]
-GROUP=getpwnam('quagga')[3]
-chown(TEMPDIR,USER,GROUP)
 
 def run():
     "Test linux router"
-    topo = NetworkTopo(RN)
-    net = Mininet( topo=topo , controller = None )
+    net = network(RN)
     net.start()
     for r in LinuxRouter._routers:
        net.get(r).start()
@@ -55,7 +49,7 @@ def run():
     for r in LinuxRouter._routers:
        net.get(r).stop()
     net.stop()
-    rmtree(TEMPDIR)
+    #rmtree(TEMPDIR)
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
