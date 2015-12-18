@@ -20,7 +20,14 @@ from shutil import rmtree
 from pwd import getpwnam
 import sys
 from linuxrouter import LinuxRouter
-from topo2 import NetworkTopo
+
+try:
+    topoPath = sys.argv[2]
+    from topoPath import NetworkTopo
+except:
+    if len(sys.argv)>2:
+        print "tried and failed to import a topology from " + sys.argv[2]
+    from topo1 import NetworkTopo
 
 try:
     RN = int(sys.argv[1])
@@ -40,7 +47,7 @@ chown(TEMPDIR,USER,GROUP)
 def run():
     "Test linux router"
     topo = NetworkTopo(RN)
-    net = Mininet( topo=topo )
+    net = Mininet( topo=topo , controller = None )
     net.start()
     for r in LinuxRouter._routers:
        net.get(r).start()
