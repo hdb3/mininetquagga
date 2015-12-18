@@ -17,10 +17,11 @@ class NetworkTopo( Topo ):
 
     def build( self, **_opts ):
 
-        subnetFactory = SubnetFactory('10.0.0.0/8')
+        linkSubnetFactory = SubnetFactory('10.0.0.0/8')
+        hostSubnetFactory = SubnetFactory('172.16.0.0/12')
 
         for n in range(self.RN):
-            ip1,ip2 = subnetFactory.getLink()
+            ip1,ip2 = hostSubnetFactory.getLink()
             print "host network: ",(ip1,ip2)
             asn = 100+n
             c = str(n)
@@ -31,7 +32,7 @@ class NetworkTopo( Topo ):
         for n in range(1,self.RN): # can only add links when ALL of the routers are defined, hence a second loop is needed
             cn = str(n) ; r0 = 'r0' ; ra = 'r'+cn ; intfca = r0+'-'+ra ; intfcb = ra+'-'+r0
             asn = 100 ; remoteAsn = 100+n
-            ip1,ip2 = subnetFactory.getLink()
+            ip1,ip2 = linkSubnetFactory.getLink()
             print "adding peer", r0, ra, intfca,intfcb, ip1 , ip2 , asn, remoteAsn
             self.addLink( r0, ra, intfName1=intfca, intfName2=intfcb, params1={ 'ip' : ip1, 'asn' : asn } , params2={ 'ip' : ip2, 'asn' : remoteAsn } )
 
