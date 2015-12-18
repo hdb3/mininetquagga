@@ -34,7 +34,7 @@ network = __module.network
 
 try:
     RN = int(sys.argv[1])
-    assert RN > 0 and RN < 100
+    assert RN > 0 and RN < 1000
 except:
     RN = 3 # default number of routers for this topology
 print "will build %d node topo" % RN
