@@ -13,9 +13,7 @@ class NetworkTopo( Topo ):
 
     def __init__( self, n=3, *args, **params ):
         self.RN = n
-        print "enter __init__ NetworkTopo"
         super( NetworkTopo, self).__init__(*args, **params )
-        print "exit __init__ NetworkTopo"
 
     def build( self, **_opts ):
 
