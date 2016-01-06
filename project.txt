@@ -1,0 +1,9 @@
+atrium-b is composed of a number of discrete subsystems
+the 'standard' distribution bundles these subsystems into a monolithic bundle, which itself is based on a pre-existing 
+atrium-a bundle
+the release bundle itself is focussed on a mininet based topology, and incorporates test agents (BGP connected peer networks), as well as the actual atrium-b functional core.
+this make it less simple to adapt and extend atrium-b
+this project aims to decompose the atrium-b release into its fundamental components and provide a framework for recomposing the elements into a range of different toplogies, real or virtual
+
+Atrium-B release structure
+Atrium-B is built by taking the Atrium-A release in the format of a virtualbox VM and installing ODL insde the 	VM, inplace of ONOS
